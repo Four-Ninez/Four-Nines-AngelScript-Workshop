@@ -1,2 +1,2 @@
 # ffs
-some shitty attemptions to code or similiar stuff
+some shitty attemptions to code or similar stuff
