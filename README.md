@@ -1,2 +1,2 @@
-# ffs
-some shitty attemptions to code or similar stuff
+# AngelScript Workshop
+Weapon scripts for my server and maps. 
