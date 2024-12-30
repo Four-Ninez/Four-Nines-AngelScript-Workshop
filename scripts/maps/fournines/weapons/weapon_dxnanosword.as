@@ -16,12 +16,12 @@ namespace DX_NANOSWORD
 // Animations
 enum DX_NanoSword_Animation
 {
-    IDLE = 0,
-    SWIPE_LIGHT,
+	IDLE = 0,
+	SWIPE_LIGHT,
 	SWIPE_LIGHT2,
 	SWIPE_LIGHT3,
-    DRAW,
-    SWIPE_HEAVY,
+	DRAW,
+	SWIPE_HEAVY,
 	SWIPE_HEAVY2
 };
 
