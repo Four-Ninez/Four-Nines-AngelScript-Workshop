@@ -78,25 +78,19 @@ class WeaponNanoSword : ScriptBasePlayerWeaponEntity
 
     bool Deploy()
     {
-        return self.DefaultDeploy(self.GetV_Model(MODEL_VIEW), self.GetP_Model(MODEL_PLAYER), DEUS_Ex_NanoSword_Animation::DRAW, "crowbar");
+        return self.DefaultDeploy(self.GetV_Model(MODEL_VIEW), self.GetP_Model(MODEL_PLAYER), DX_NanoSword_Animation::DRAW, "crowbar");
     }
 
     void PrimaryAttack()
     {
-        if (!Swing(DAMAGE_LIGHT, ATTACK_DELAY_LIGHT, SOUND_SWING, DEUS_Ex_NanoSword_Animation::SWIPE_LIGHT))
+        if (!Swing(DAMAGE_LIGHT, ATTACK_DELAY_LIGHT, SOUND_SWING, DX_NanoSword_Animation::SWIPE_LIGHT))
             return;
     }
 
     void SecondaryAttack()
     {
-        if (m_pPlayer.pev.frags < ENERGY_COST)
-        {
-            g_SoundSystem.EmitSoundDyn(m_pPlayer.edict(), CHAN_WEAPON, SOUND_ENERGY, 0.8, ATTN_NORM, 0, PITCH_NORM);
+        if (!Swing(DAMAGE_HEAVY, ATTACK_DELAY_HEAVY, SOUND_SWING, DX_NanoSword_Animation::SWIPE_HEAVY))
             return;
-        }
-
-        m_pPlayer.pev.frags -= ENERGY_COST;
-        Swing(DAMAGE_HEAVY, ATTACK_DELAY_HEAVY, SOUND_ENERGY, DX_NanoSword_Animation::ENERGY_PULSE);
     }
 
     bool Swing(int damage, float delay, const string& in sound, DX_NanoSword_Animation animation)
