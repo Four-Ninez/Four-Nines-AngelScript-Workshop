@@ -137,6 +137,6 @@ string GetNanoSwordName()
 void RegisterNanoSword()
 {
     g_CustomEntityFuncs.RegisterCustomEntity("DX_NANOSWORD::WeaponNanoSword", GetNanoSwordName());
-    g_ItemRegistry.RegisterWeapon(GetNanoSwordName(), "deusex");
+    g_ItemRegistry.RegisterWeapon(GetNanoSwordName(), "fournines/weapons");
 }
 }
