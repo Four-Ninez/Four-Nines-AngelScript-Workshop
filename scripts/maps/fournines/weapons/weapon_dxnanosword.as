@@ -57,7 +57,6 @@ float STAB_DIST  	= 48.0f;
 class WeaponNanoSword : ScriptBasePlayerWeaponEntity
 {
     private CBasePlayer@ m_pPlayer;
-    private bool m_bEnergyActive;
 
     void Spawn()
     {
