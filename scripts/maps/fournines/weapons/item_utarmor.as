@@ -3,7 +3,7 @@
 // Model: Epic Games
 // Sound: Epic Games
 // Script edit, model and sound rip, texture upscale (via AI): Four-Nines
-// Ripped via UTPT
+// Ripped via UModel
 
 namespace UT_ARMOR
 {
