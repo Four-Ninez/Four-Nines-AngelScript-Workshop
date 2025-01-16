@@ -55,16 +55,17 @@ namespace DX_NANOSWORD
             set { self.m_hPlayer = EHandle(@value); }
         }
 
-        private TraceResult m_trHit; // Stores the trace result for decal placement
-        private int m_iSwing;       // Tracks the swing animation state
+        private TraceResult m_trHit;
+        private int m_iSwing;
 
         void Spawn()
         {
             Precache();
             g_EntityFuncs.SetModel(self, MODEL_WORLD);
+            self.m_iClip = WEAPON_NOCLIP;
             self.FallInit();
             self.pev.flags |= FLAGS;
-            m_iSwing = 0; // Reset swing counter
+            m_iSwing = 0;
         }
 
         void Precache()
@@ -95,53 +96,63 @@ namespace DX_NANOSWORD
             return true;
         }
 
+        bool AddToPlayer(CBasePlayer@ pPlayer)
+        {
+            if (!BaseClass.AddToPlayer(pPlayer))
+                return false;
+
+            @m_pPlayer = pPlayer;
+
+            NetworkMessage message(MSG_ONE, NetworkMessages::WeapPickup, pPlayer.edict());
+            message.WriteLong(g_ItemRegistry.GetIdForName("weapon_dxnanosword"));
+            message.End();
+
+            return true;
+        }
         bool Deploy()
         {
             g_SoundSystem.EmitSound(m_pPlayer.edict(), CHAN_ITEM, SOUND_DRAW, 1, ATTN_NORM);
+            m_pPlayer.pev.viewmodel = MODEL_VIEW;
+            m_pPlayer.pev.weaponmodel = MODEL_PLAYER;
+            self.SendWeaponAnim(DRAW);
+            self.m_flTimeWeaponIdle = g_Engine.time + 1.2f;
             return self.DefaultDeploy(self.GetV_Model(MODEL_VIEW), self.GetP_Model(MODEL_PLAYER), DRAW, "crowbar");
         }
 
         void PrimaryAttack()
         {
-            if (!Swing(true)) // Attempt to swing
+            if (!Swing(true))
             {
-                // If the swing didn't hit, try again after a short delay
                 SetThink(ThinkFunction(this.SwingAgain));
-                pev.nextthink = g_Engine.time + 0.1f;
+                self.pev.nextthink = g_Engine.time + 0.1f;
             }
         }
 
         void SecondaryAttack()
         {
-            if (!HeavySwing(true)) // Attempt to perform a heavy swing
+            if (!HeavySwing(true))
             {
-                // If the swing didn't hit, try again after a short delay
                 SetThink(ThinkFunction(this.HeavySwingAgain));
-                pev.nextthink = g_Engine.time + 0.1f;
+                self.pev.nextthink = g_Engine.time + 0.1f;
             }
         }
 
         private bool Swing(bool fFirst)
         {
             bool fDidHit = false;
-
             TraceResult tr;
 
-            // Calculate the start and end points of the swing
             Math.MakeVectors(m_pPlayer.pev.v_angle);
             Vector vecSrc = m_pPlayer.GetGunPosition();
             Vector vecEnd = vecSrc + g_Engine.v_forward * SLASH_DIST;
 
-            // Perform a line trace to check for hits
             g_Utility.TraceLine(vecSrc, vecEnd, dont_ignore_monsters, m_pPlayer.edict(), tr);
 
-            // If the line trace didn't hit anything, perform a hull trace
             if (tr.flFraction >= 1.0f)
             {
                 g_Utility.TraceHull(vecSrc, vecEnd, dont_ignore_monsters, head_hull, m_pPlayer.edict(), tr);
                 if (tr.flFraction < 1.0f)
                 {
-                    // Adjust the trace result for hull intersections
                     CBaseEntity@ pHit = g_EntityFuncs.Instance(tr.pHit);
                     if (pHit is null || pHit.IsBSPModel())
                         g_Utility.FindHullIntersection(vecSrc, tr, tr, VEC_DUCK_HULL_MIN, VEC_DUCK_HULL_MAX, m_pPlayer.edict());
@@ -149,12 +160,10 @@ namespace DX_NANOSWORD
                 }
             }
 
-            // If the swing didn't hit anything
             if (tr.flFraction >= 1.0f)
             {
                 if (fFirst)
                 {
-                    // Play miss animation
                     switch ((m_iSwing++) % 3)
                     {
                         case 0: self.SendWeaponAnim(DX_NanoSword_Animation::SWIPE_LIGHT); break;
@@ -163,22 +172,15 @@ namespace DX_NANOSWORD
                     }
                     self.m_flNextPrimaryAttack = g_Engine.time + ATTACK_DELAY_LIGHT;
                     self.m_flTimeWeaponIdle = g_Engine.time + 2.0f;
-
-                    // Play miss sound
                     g_SoundSystem.EmitSoundDyn(m_pPlayer.edict(), CHAN_WEAPON, SOUND_SWING, 1.0, ATTN_NORM, 0, PITCH_NORM);
-
-                    // Play player attack animation
                     m_pPlayer.SetAnimation(PLAYER_ATTACK1);
                 }
             }
             else
             {
-                // The swing hit something
                 fDidHit = true;
-
                 CBaseEntity@ pEntity = g_EntityFuncs.Instance(tr.pHit);
 
-                // Play hit animation
                 switch ((m_iSwing++) % 3)
                 {
                     case 0: self.SendWeaponAnim(DX_NanoSword_Animation::SWIPE_LIGHT); break;
@@ -188,37 +190,28 @@ namespace DX_NANOSWORD
 
                 self.m_flNextPrimaryAttack = g_Engine.time + ATTACK_DELAY_LIGHT;
                 self.m_flTimeWeaponIdle = g_Engine.time + 2.0f;
-
-                // Play player attack animation
                 m_pPlayer.SetAnimation(PLAYER_ATTACK1);
-
-                // Apply damage to the hit entity
                 g_WeaponFuncs.ClearMultiDamage();
                 pEntity.TraceAttack(m_pPlayer.pev, DAMAGE_LIGHT, g_Engine.v_forward, tr, DMG_SLASH);
                 g_WeaponFuncs.ApplyMultiDamage(m_pPlayer.pev, m_pPlayer.pev);
 
-                // Play hit sound
                 if (pEntity !is null && pEntity.IsAlive())
                 {
                     g_SoundSystem.EmitSoundDyn(m_pPlayer.edict(), CHAN_WEAPON, SOUND_IMPACT, 1.0, ATTN_NORM, 0, PITCH_NORM);
                 }
                 else
                 {
-                    // Play wall hit sound
                     g_SoundSystem.EmitSoundDyn(m_pPlayer.edict(), CHAN_WEAPON, SOUND_HITWALL, 1.0, ATTN_NORM, 0, PITCH_NORM);
                 }
 
-                // Store the trace result for decal placement
                 m_trHit = tr;
                 SetThink(ThinkFunction(this.Smack));
-                pev.nextthink = g_Engine.time + 0.2f; // Delay decal placement
+                self.pev.nextthink = g_Engine.time + 0.2f;
             }
 
-            // Force the player to return to the weapon's idle animation after the attack
             m_pPlayer.SetAnimation(PLAYER_IDLE);
             return fDidHit;
         }
-
 
         private void SwingAgain()
         {
@@ -228,37 +221,30 @@ namespace DX_NANOSWORD
         private bool HeavySwing(bool fFirst)
         {
             bool fDidHit = false;
-        
             TraceResult tr;
-        
-            // Calculate the start and end points of the swing
+
             Math.MakeVectors(m_pPlayer.pev.v_angle);
             Vector vecSrc = m_pPlayer.GetGunPosition();
             Vector vecEnd = vecSrc + g_Engine.v_forward * SLASH_DIST;
-        
-            // Perform a line trace to check for hits
+
             g_Utility.TraceLine(vecSrc, vecEnd, dont_ignore_monsters, m_pPlayer.edict(), tr);
-        
-            // If the line trace didn't hit anything, perform a hull trace
+
             if (tr.flFraction >= 1.0f)
             {
                 g_Utility.TraceHull(vecSrc, vecEnd, dont_ignore_monsters, head_hull, m_pPlayer.edict(), tr);
                 if (tr.flFraction < 1.0f)
                 {
-                    // Adjust the trace result for hull intersections
                     CBaseEntity@ pHit = g_EntityFuncs.Instance(tr.pHit);
                     if (pHit is null || pHit.IsBSPModel())
                         g_Utility.FindHullIntersection(vecSrc, tr, tr, VEC_DUCK_HULL_MIN, VEC_DUCK_HULL_MAX, m_pPlayer.edict());
                     vecEnd = tr.vecEndPos;
                 }
             }
-        
-            // If the swing didn't hit anything
+
             if (tr.flFraction >= 1.0f)
             {
                 if (fFirst)
                 {
-                    // Play miss animation for heavy attack
                     switch ((m_iSwing++) % 2)
                     {
                         case 0: self.SendWeaponAnim(DX_NanoSword_Animation::SWIPE_HEAVY); break;
@@ -266,58 +252,42 @@ namespace DX_NANOSWORD
                     }
                     self.m_flNextSecondaryAttack = g_Engine.time + ATTACK_DELAY_HEAVY;
                     self.m_flTimeWeaponIdle = g_Engine.time + 2.0f;
-        
-                    // Play miss sound for heavy attack
                     g_SoundSystem.EmitSoundDyn(m_pPlayer.edict(), CHAN_WEAPON, SOUND_SWING, 1.0, ATTN_NORM, 0, PITCH_NORM);
-        
-                    // Play player attack animation
                     m_pPlayer.SetAnimation(PLAYER_ATTACK1);
                 }
             }
             else
             {
-                // The swing hit something
                 fDidHit = true;
-        
                 CBaseEntity@ pEntity = g_EntityFuncs.Instance(tr.pHit);
-        
-                // Play hit animation for heavy attack
+
                 switch ((m_iSwing++) % 2)
                 {
                     case 0: self.SendWeaponAnim(DX_NanoSword_Animation::SWIPE_HEAVY); break;
                     case 1: self.SendWeaponAnim(DX_NanoSword_Animation::SWIPE_HEAVY2); break;
                 }
-        
-                // Set the delay for the next heavy attack
+
                 self.m_flNextSecondaryAttack = g_Engine.time + ATTACK_DELAY_HEAVY;
                 self.m_flTimeWeaponIdle = g_Engine.time + 2.0f;
-        
-                // Play player attack animation
                 m_pPlayer.SetAnimation(PLAYER_ATTACK1);
-        
-                // Apply damage to the hit entity
                 g_WeaponFuncs.ClearMultiDamage();
                 pEntity.TraceAttack(m_pPlayer.pev, DAMAGE_HEAVY, g_Engine.v_forward, tr, DMG_SLASH);
                 g_WeaponFuncs.ApplyMultiDamage(m_pPlayer.pev, m_pPlayer.pev);
-        
-                // Play hit sound
+
                 if (pEntity !is null && pEntity.IsAlive())
                 {
                     g_SoundSystem.EmitSoundDyn(m_pPlayer.edict(), CHAN_WEAPON, SOUND_IMPACT, 1.0, ATTN_NORM, 0, PITCH_NORM);
                 }
                 else
                 {
-                    // Play wall hit sound
                     g_SoundSystem.EmitSoundDyn(m_pPlayer.edict(), CHAN_WEAPON, SOUND_HITWALL, 1.0, ATTN_NORM, 0, PITCH_NORM);
                 }
-        
-                // Store the trace result for decal placement
+
                 m_trHit = tr;
                 SetThink(ThinkFunction(this.Smack));
-                pev.nextthink = g_Engine.time + 0.2f; // Delay decal placement
+                self.pev.nextthink = g_Engine.time + 0.2f;
             }
-        
-            // Force the player to return to the weapon's idle animation after the attack
+
             m_pPlayer.SetAnimation(PLAYER_IDLE);
             return fDidHit;
         }
@@ -327,10 +297,16 @@ namespace DX_NANOSWORD
             HeavySwing(false);
         }
 
-        // Place a decal on the surface that was hit
         private void Smack()
         {
             g_WeaponFuncs.DecalGunshot(m_trHit, BULLET_PLAYER_CROWBAR);
+        }
+
+        void WeaponIdle()
+        {
+            if (self.m_flTimeWeaponIdle > g_Engine.time)
+                return;
+            self.m_flTimeWeaponIdle = g_Engine.time + Math.RandomFloat(8.5f, 17);
         }
     }
 
