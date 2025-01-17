@@ -22,7 +22,8 @@ Also, if you want more weapons or have any ideas of what else to add, dm me in m
 W.I.P.
 
 # Credits
-- *Mikk*, *Ner0* - CSO Kevlar original script (UT armor is just edited script tbh).
+- *Mikk* - CSO Kevlar original script (UT armor is just edited script tbh).
+- *Ner0* - CSO Kevlar original script, some lines of his code are used for Nano Sword as a reference. 
 - *Epic Games* - Assets for UT armor (model, sound, texture).
 - *Kerncore* - CSCZ Machete used as a base for DX Dragon Tooth.
 - *Arasefiq*, *Rizulix* - some of BTS_RC codelines of some weapons used for weapon as a reference.
