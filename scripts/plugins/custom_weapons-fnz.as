@@ -1,4 +1,4 @@
-//#include "../maps/fournines/weapon_dxnanosword"
+#include "../maps/fournines/weapon_dxnanosword"
 #include "../maps/fournines/item_utarmor"
 
 
@@ -10,6 +10,6 @@ void PluginInit()
 
 void MapInit()
 {
-//    DX_NANOSWORD::Register();
+    DX_NANOSWORD::Register();
 	UT_ARMOR::Register();
 }
